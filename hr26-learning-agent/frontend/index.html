@@ -1,0 +1,892 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Learning Experiences Agent</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0f1419;
+      --surface: #1a2332;
+      --surface2: #243044;
+      --border: #2d3a4f;
+      --text: #e8eef7;
+      --muted: #8b9bb4;
+      --accent: #3b82f6;
+      --accent-hover: #2563eb;
+      --success: #22c55e;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --radius: 12px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      overflow: hidden;
+    }
+    .app {
+      display: grid;
+      grid-template-columns: 320px 1fr 300px;
+      height: 100vh;
+    }
+    /* Sidebar */
+    .sidebar {
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .sidebar-header {
+      padding: 20px;
+      border-bottom: 1px solid var(--border);
+    }
+    .sidebar-header h1 {
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+    .sidebar-header p {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+    .panel {
+      padding: 16px;
+      border-bottom: 1px solid var(--border);
+      overflow-y: auto;
+    }
+    .panel h2 {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+      margin-bottom: 12px;
+      font-weight: 600;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 14px;
+      border-radius: 8px;
+      border: none;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .btn-primary {
+      background: var(--accent);
+      color: white;
+    }
+    .btn-primary:hover { background: var(--accent-hover); }
+    .btn-ghost {
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid var(--border);
+    }
+    .btn-ghost:hover { background: var(--surface2); color: var(--text); }
+    .btn-sm { padding: 6px 10px; font-size: 12px; }
+    .btn-block { width: 100%; justify-content: center; }
+    .form-group { margin-bottom: 12px; }
+    .form-group label {
+      display: block;
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+    input, textarea, select {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 9px 12px;
+      color: var(--text);
+      font-size: 13px;
+      font-family: inherit;
+      outline: none;
+    }
+    input:focus, textarea:focus, select:focus {
+      border-color: var(--accent);
+    }
+    textarea { resize: vertical; min-height: 80px; }
+    .resource-card, .learner-card {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+      margin-bottom: 8px;
+      cursor: pointer;
+      transition: border-color 0.15s;
+    }
+    .resource-card:hover, .learner-card:hover,
+    .resource-card.active, .learner-card.active {
+      border-color: var(--accent);
+    }
+    .resource-card .title, .learner-card .title {
+      font-size: 13px;
+      font-weight: 550;
+    }
+    .resource-card .meta, .learner-card .meta {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 3px;
+    }
+    .trust-badge {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 600;
+      padding: 2px 6px;
+      border-radius: 4px;
+      margin-top: 4px;
+    }
+    .trust-high { background: rgba(34,197,94,0.15); color: var(--success); }
+    .trust-mid  { background: rgba(245,158,11,0.15); color: var(--warning); }
+    .trust-low  { background: rgba(239,68,68,0.15); color: var(--danger); }
+
+    /* Main chat */
+    .main {
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .chat-header {
+      padding: 16px 24px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .chat-header h2 { font-size: 15px; font-weight: 600; }
+    .chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .msg {
+      max-width: 78%;
+      padding: 12px 16px;
+      border-radius: 14px;
+      font-size: 14px;
+      line-height: 1.55;
+      white-space: pre-wrap;
+    }
+    .msg.user {
+      align-self: flex-end;
+      background: var(--accent);
+      color: white;
+      border-bottom-right-radius: 4px;
+    }
+    .msg.assistant {
+      align-self: flex-start;
+      background: var(--surface2);
+      border-bottom-left-radius: 4px;
+    }
+    .msg.system {
+      align-self: center;
+      background: transparent;
+      color: var(--muted);
+      font-size: 12px;
+      max-width: 100%;
+      text-align: center;
+    }
+    .trace {
+      margin-top: 10px;
+      padding: 10px;
+      background: var(--bg);
+      border-radius: 8px;
+      font-size: 11px;
+      color: var(--muted);
+      max-height: 160px;
+      overflow-y: auto;
+    }
+    .chat-input-area {
+      padding: 16px 24px;
+      border-top: 1px solid var(--border);
+      background: var(--surface);
+    }
+    .chat-input-row {
+      display: flex;
+      gap: 10px;
+    }
+    .chat-input-row textarea {
+      flex: 1;
+      min-height: 48px;
+      max-height: 120px;
+    }
+    .chat-input-row .btn { align-self: flex-end; height: 48px; padding: 0 16px; }
+    .btn-icon {
+      width: 48px;
+      height: 48px;
+      padding: 0;
+      justify-content: center;
+      font-size: 18px;
+      border-radius: 10px;
+    }
+    .btn-mic.listening {
+      background: var(--danger) !important;
+      color: white !important;
+      animation: pulse 1.2s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.45); }
+      50% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+    }
+    .voice-status {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 8px;
+      min-height: 18px;
+    }
+    .voice-status.active { color: var(--danger); font-weight: 500; }
+
+    /* Right panel */
+    .rightbar {
+      background: var(--surface);
+      border-left: 1px solid var(--border);
+      overflow-y: auto;
+      padding: 16px;
+    }
+    .rightbar h2 {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+      margin-bottom: 12px;
+      font-weight: 600;
+    }
+    .empty-state {
+      text-align: center;
+      color: var(--muted);
+      font-size: 13px;
+      padding: 24px 12px;
+    }
+    .status-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--success);
+      display: inline-block;
+      margin-right: 6px;
+    }
+    .modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.6);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+      width: 420px;
+      max-width: 95vw;
+    }
+    .modal h3 { font-size: 16px; margin-bottom: 16px; }
+    .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
+    .loading {
+      display: inline-block;
+      width: 14px; height: 14px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <!-- LEFT SIDEBAR -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <h1>Learning Experiences</h1>
+        <p><span class="status-dot"></span>Agent ready</p>
+      </div>
+
+      <!-- Resources -->
+      <div class="panel" style="flex:1; overflow-y:auto;">
+        <h2>Resources</h2>
+        <button class="btn btn-primary btn-sm btn-block" onclick="openModal('resource')" style="margin-bottom:12px;">
+          + Add Resource
+        </button>
+        <div id="resource-list">
+          <div class="empty-state">No resources yet.<br>Add notes or paste text.</div>
+        </div>
+      </div>
+
+      <!-- Learners -->
+      <div class="panel" style="flex:1; overflow-y:auto;">
+        <h2>Learners</h2>
+        <button class="btn btn-primary btn-sm btn-block" onclick="openModal('learner')" style="margin-bottom:12px;">
+          + Add Learner
+        </button>
+        <div id="learner-list">
+          <div class="empty-state">No learners yet.</div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- MAIN CHAT -->
+    <main class="main">
+      <div class="chat-header">
+        <h2>Educator Chat</h2>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <label style="font-size:12px;color:var(--muted);display:flex;align-items:center;gap:4px;cursor:pointer;">
+            <input type="checkbox" id="auto-speak" checked onchange="autoSpeak=this.checked" />
+            Auto-speak replies
+          </label>
+          <button class="btn btn-ghost btn-sm" onclick="clearChat()">Clear</button>
+        </div>
+      </div>
+      <div class="chat-messages" id="messages">
+        <div class="msg system">
+          Welcome. Add resources and learners on the left, then describe what learning experience you want to create.
+          <br><br>
+          Example: “Build a 30-minute visual lesson on photosynthesis for Aisha, who is weak on chemistry basics.”
+        </div>
+      </div>
+      <div class="chat-input-area">
+        <div class="chat-input-row">
+          <button class="btn btn-ghost btn-icon btn-mic" id="mic-btn" title="Speak (hold or click)" onclick="toggleMic()">🎤</button>
+          <textarea id="chat-input" placeholder="Type or speak your idea… (ideas can be half-finished)" rows="2"
+            onkeydown="if(event.key==='Enter' && !event.shiftKey){event.preventDefault(); sendMessage();}"></textarea>
+          <button class="btn btn-ghost btn-icon" id="speak-btn" title="Speak last reply" onclick="speakLastReply()">🔊</button>
+          <button class="btn btn-primary" id="send-btn" onclick="sendMessage()">Send</button>
+        </div>
+        <div class="voice-status" id="voice-status"></div>
+      </div>
+    </main>
+
+    <!-- RIGHT PANEL -->
+    <aside class="rightbar">
+      <h2>Session Info</h2>
+      <div id="session-info">
+        <div class="empty-state">Select a learner or add resources to get started.</div>
+      </div>
+      <div style="margin-top:24px;">
+        <h2>Quick Actions</h2>
+        <button class="btn btn-ghost btn-sm btn-block" style="margin-bottom:8px;" onclick="resolveConflicts()">
+          Resolve Source Conflicts
+        </button>
+        <button class="btn btn-ghost btn-sm btn-block" onclick="predictGaps()">
+          Predict Gaps for Selected Learner
+        </button>
+      </div>
+    </aside>
+  </div>
+
+  <!-- Resource Modal -->
+  <div class="modal-overlay" id="modal-resource">
+    <div class="modal">
+      <h3>Add Resource</h3>
+      <div class="form-group">
+        <label>Title</label>
+        <input id="res-title" placeholder="e.g. Photosynthesis Lecture Notes" />
+      </div>
+      <div class="form-group">
+        <label>Content</label>
+        <textarea id="res-text" rows="6" placeholder="Paste notes, textbook excerpt, or any teaching material…"></textarea>
+      </div>
+      <div class="form-group">
+        <label>Source Type</label>
+        <select id="res-type">
+          <option value="lecture_notes">Lecture Notes</option>
+          <option value="textbook">Textbook</option>
+          <option value="notes">Notes</option>
+          <option value="presentation">Presentation</option>
+          <option value="text">Other Text</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label><input type="checkbox" id="res-primary" /> Mark as primary (preferred) source</label>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" onclick="closeModal('resource')">Cancel</button>
+        <button class="btn btn-primary" onclick="addResource()">Add Resource</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Learner Modal -->
+  <div class="modal-overlay" id="modal-learner">
+    <div class="modal">
+      <h3>Add Learner</h3>
+      <div class="form-group">
+        <label>Name</label>
+        <input id="lrn-name" placeholder="e.g. Aisha" />
+      </div>
+      <div class="form-group">
+        <label>Preferred Modality</label>
+        <select id="lrn-modality">
+          <option value="visual">Visual</option>
+          <option value="auditory">Auditory</option>
+          <option value="reading">Reading</option>
+          <option value="kinesthetic">Kinesthetic</option>
+          <option value="mixed" selected>Mixed</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Pace</label>
+        <select id="lrn-pace">
+          <option value="slow">Slow</option>
+          <option value="moderate" selected>Moderate</option>
+          <option value="fast">Fast</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Language</label>
+        <input id="lrn-lang" value="en" />
+      </div>
+      <div class="form-group">
+        <label>Prior Knowledge (optional, concept:score)</label>
+        <input id="lrn-prior" placeholder='e.g. basic_plant_structure:0.7, atoms:0.3' />
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" onclick="closeModal('learner')">Cancel</button>
+        <button class="btn btn-primary" onclick="addLearner()">Add Learner</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API = '/api';
+    let conversationHistory = [];
+    let selectedLearnerId = null;
+    let resources = [];
+    let learners = [];
+
+    // ---------- UI helpers ----------
+    function openModal(type) {
+      document.getElementById('modal-' + type).classList.add('open');
+    }
+    function closeModal(type) {
+      document.getElementById('modal-' + type).classList.remove('open');
+    }
+    function trustClass(score) {
+      if (score >= 0.75) return 'trust-high';
+      if (score >= 0.5) return 'trust-mid';
+      return 'trust-low';
+    }
+    function appendMessage(role, content, trace, images) {
+      const box = document.getElementById('messages');
+      const div = document.createElement('div');
+      div.className = 'msg ' + role;
+
+      // Text content
+      const textNode = document.createElement('div');
+      textNode.style.whiteSpace = 'pre-wrap';
+      textNode.textContent = content;
+      div.appendChild(textNode);
+
+      // Generated educational images
+      if (images && images.length) {
+        images.forEach(img => {
+          const wrap = document.createElement('div');
+          wrap.style.marginTop = '12px';
+          if (img.title) {
+            const cap = document.createElement('div');
+            cap.style.fontSize = '12px';
+            cap.style.color = 'var(--muted)';
+            cap.style.marginBottom = '6px';
+            cap.textContent = img.title;
+            wrap.appendChild(cap);
+          }
+          if (img.url) {
+            // url can be a normal http URL or a base64 data URI
+            const src = img.url.startsWith('http') || img.url.startsWith('data:')
+              ? img.url
+              : ('data:image/png;base64,' + img.url);
+            const el = document.createElement('img');
+            el.src = src;
+            el.alt = img.title || 'Generated visual';
+            el.style.maxWidth = '100%';
+            el.style.borderRadius = '10px';
+            el.style.border = '1px solid var(--border)';
+            el.style.marginTop = '4px';
+            wrap.appendChild(el);
+          }
+          div.appendChild(wrap);
+        });
+      }
+
+      if (trace && trace.length) {
+        const t = document.createElement('div');
+        t.className = 'trace';
+        t.textContent = 'Trace: ' + JSON.stringify(trace, null, 2).slice(0, 800);
+        div.appendChild(t);
+      }
+      box.appendChild(div);
+      box.scrollTop = box.scrollHeight;
+    }
+
+    // ---------- Resources ----------
+    async function loadResources() {
+      try {
+        const res = await fetch(API + '/resources');
+        resources = await res.json();
+        renderResources();
+      } catch (e) { console.error(e); }
+    }
+    function renderResources() {
+      const el = document.getElementById('resource-list');
+      if (!resources.length) {
+        el.innerHTML = '<div class="empty-state">No resources yet.</div>';
+        return;
+      }
+      el.innerHTML = resources.map(r => `
+        <div class="resource-card">
+          <div class="title">${esc(r.title)}</div>
+          <div class="meta">${r.type}</div>
+          <span class="trust-badge ${trustClass(r.trust_score)}">Trust ${ (r.trust_score*100).toFixed(0) }%</span>
+        </div>
+      `).join('');
+    }
+    async function addResource() {
+      const title = document.getElementById('res-title').value.trim();
+      const text = document.getElementById('res-text').value.trim();
+      if (!title || !text) return alert('Title and content required');
+      const body = {
+        title,
+        text,
+        source_type: document.getElementById('res-type').value,
+        is_primary: document.getElementById('res-primary').checked,
+        domain_context: 'General education'
+      };
+      try {
+        const res = await fetch(API + '/resources/text', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+        const data = await res.json();
+        closeModal('resource');
+        document.getElementById('res-title').value = '';
+        document.getElementById('res-text').value = '';
+        await loadResources();
+        appendMessage('system', `Resource "${data.title}" added (trust ${(data.trust_score*100).toFixed(0)}%).`);
+      } catch (e) {
+        alert('Failed to add resource: ' + e.message);
+      }
+    }
+
+    // ---------- Learners ----------
+    async function loadLearners() {
+      // We don't have a list endpoint yet, so we keep local state
+      renderLearners();
+    }
+    function renderLearners() {
+      const el = document.getElementById('learner-list');
+      if (!learners.length) {
+        el.innerHTML = '<div class="empty-state">No learners yet.</div>';
+        return;
+      }
+      el.innerHTML = learners.map(l => `
+        <div class="learner-card ${l.id === selectedLearnerId ? 'active' : ''}" onclick="selectLearner('${l.id}')">
+          <div class="title">${esc(l.name)}</div>
+          <div class="meta">${l.learning_style?.preferred_modality || 'mixed'} · ${l.learning_style?.pace || 'moderate'}</div>
+        </div>
+      `).join('');
+      updateSessionInfo();
+    }
+    function selectLearner(id) {
+      selectedLearnerId = id;
+      renderLearners();
+    }
+    async function addLearner() {
+      const name = document.getElementById('lrn-name').value.trim();
+      if (!name) return alert('Name required');
+      let prior = {};
+      const priorStr = document.getElementById('lrn-prior').value.trim();
+      if (priorStr) {
+        priorStr.split(',').forEach(pair => {
+          const [k, v] = pair.split(':').map(s => s.trim());
+          if (k && v) prior[k] = parseFloat(v) || 0;
+        });
+      }
+      const body = {
+        name,
+        prior_knowledge: prior,
+        preferred_modality: document.getElementById('lrn-modality').value,
+        pace: document.getElementById('lrn-pace').value,
+        language: document.getElementById('lrn-lang').value || 'en',
+        needs_scaffolding: true
+      };
+      try {
+        const res = await fetch(API + '/learners', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+        const data = await res.json();
+        learners.push(data);
+        selectedLearnerId = data.id;
+        closeModal('learner');
+        document.getElementById('lrn-name').value = '';
+        document.getElementById('lrn-prior').value = '';
+        renderLearners();
+        appendMessage('system', `Learner "${data.name}" created.`);
+      } catch (e) {
+        alert('Failed to add learner: ' + e.message);
+      }
+    }
+    function updateSessionInfo() {
+      const el = document.getElementById('session-info');
+      const l = learners.find(x => x.id === selectedLearnerId);
+      if (!l) {
+        el.innerHTML = '<div class="empty-state">Select a learner.</div>';
+        return;
+      }
+      el.innerHTML = `
+        <div style="font-size:14px;font-weight:600;margin-bottom:8px;">${esc(l.name)}</div>
+        <div style="font-size:12px;color:var(--muted);line-height:1.6;">
+          Modality: ${l.learning_style?.preferred_modality}<br>
+          Pace: ${l.learning_style?.pace}<br>
+          Language: ${l.learning_style?.language}<br>
+          Prior knowledge: ${Object.keys(l.prior_knowledge || {}).length} concepts
+        </div>
+      `;
+    }
+
+    // ---------- Chat ----------
+    async function sendMessage() {
+      const input = document.getElementById('chat-input');
+      const text = input.value.trim();
+      if (!text) return;
+      input.value = '';
+      appendMessage('user', text);
+
+      const btn = document.getElementById('send-btn');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="loading"></span>';
+
+      try {
+        const res = await fetch(API + '/agent/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            message: text,
+            conversation_history: conversationHistory
+          })
+        });
+        const data = await res.json();
+        const reply = data.reply || '(no reply)';
+        lastAssistantReply = reply;
+        appendMessage('assistant', reply, data.trace, data.images || []);
+        // Keep history simple
+        conversationHistory.push({ role: 'user', content: text });
+        conversationHistory.push({ role: 'assistant', content: reply });
+        // Auto-speak short replies (skip very long lessons)
+        if (autoSpeak && reply.length < 900) {
+          speakText(reply);
+        }
+      } catch (e) {
+        appendMessage('system', 'Error: ' + e.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Send';
+      }
+    }
+    function clearChat() {
+      conversationHistory = [];
+      document.getElementById('messages').innerHTML = '<div class="msg system">Chat cleared. How can I help?</div>';
+    }
+
+    // ---------- Quick actions ----------
+    async function resolveConflicts() {
+      appendMessage('system', 'Resolving source conflicts…');
+      try {
+        const res = await fetch(API + '/resources/resolve-conflicts', { method: 'POST' });
+        const data = await res.json();
+        appendMessage('assistant',
+          `Conflict resolution complete.\n\nNotes: ${data.resolution_notes || '—'}\n\nTrusted order: ${(data.trusted_resources || []).map(r => r.title).join(' → ')}`
+        );
+      } catch (e) {
+        appendMessage('system', 'Error: ' + e.message);
+      }
+    }
+    async function predictGaps() {
+      if (!selectedLearnerId) return alert('Select a learner first');
+      appendMessage('system', 'Predicting gaps…');
+      // Simple default curriculum for demo
+      const concepts = [
+        { id: 'photosynthesis_overview', name: 'Photosynthesis Overview' },
+        { id: 'light_reactions', name: 'Light-dependent Reactions' },
+        { id: 'calvin_cycle', name: 'Calvin Cycle' },
+        { id: 'chloroplast_structure', name: 'Chloroplast Structure' }
+      ];
+      try {
+        const res = await fetch(API + `/learners/${selectedLearnerId}/predict-gaps`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ curriculum_concepts: concepts })
+        });
+        const data = await res.json();
+        const gaps = (data.predicted_gaps || []).map(g =>
+          `• ${g.concept_name} (${(g.probability*100).toFixed(0)}%): ${g.reason}`
+        ).join('\n');
+        appendMessage('assistant',
+          `Predicted gaps:\n${gaps || 'None predicted'}\n\nRevised path: ${(data.revised_path || []).join(' → ')}`
+        );
+      } catch (e) {
+        appendMessage('system', 'Error: ' + e.message);
+      }
+    }
+
+    function esc(s) {
+      const d = document.createElement('div');
+      d.textContent = s || '';
+      return d.innerHTML;
+    }
+
+    // ---------- Voice (Web Speech API) ----------
+    let recognition = null;
+    let isListening = false;
+    let lastAssistantReply = '';
+    let autoSpeak = true;
+    let baseTextBeforeSpeech = '';
+    let restartTimer = null;
+
+    function initSpeech() {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRecognition) {
+        document.getElementById('voice-status').textContent =
+          'Voice input not supported. Please use Chrome or Edge.';
+        document.getElementById('mic-btn').disabled = true;
+        return;
+      }
+      recognition = new SpeechRecognition();
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.lang = 'en-US';
+      recognition.maxAlternatives = 1;
+
+      recognition.onstart = () => {
+        document.getElementById('mic-btn').classList.add('listening');
+        setVoiceStatus('Listening… speak clearly (click mic to stop)', true);
+      };
+
+      recognition.onend = () => {
+        if (isListening) {
+          clearTimeout(restartTimer);
+          restartTimer = setTimeout(() => {
+            if (!isListening) return;
+            try { recognition.start(); } catch (e) {}
+          }, 250);
+        } else {
+          document.getElementById('mic-btn').classList.remove('listening');
+        }
+      };
+
+      recognition.onerror = (e) => {
+        const err = e.error || 'unknown';
+        if (err === 'no-speech' || err === 'aborted') return;
+        if (err === 'not-allowed' || err === 'service-not-allowed') {
+          isListening = false;
+          document.getElementById('mic-btn').classList.remove('listening');
+          setVoiceStatus('Allow microphone for this site, then try again.');
+          return;
+        }
+        if (err === 'network') {
+          setVoiceStatus('Needs internet for speech recognition. Check connection.');
+          return;
+        }
+        setVoiceStatus('Mic: ' + err);
+      };
+
+      recognition.onresult = (event) => {
+        let interim = '';
+        let allFinal = '';
+        for (let i = 0; i < event.results.length; i++) {
+          const t = event.results[i][0].transcript;
+          if (event.results[i].isFinal) allFinal += t + ' ';
+          else interim += t;
+        }
+        const input = document.getElementById('chat-input');
+        // Always write into the text box (final + live interim)
+        input.value = (baseTextBeforeSpeech + ' ' + allFinal + interim).replace(/\s+/g, ' ').trim();
+
+        if (interim) setVoiceStatus('Hearing: ' + interim, true);
+        else if (allFinal.trim()) setVoiceStatus('Got it. Keep speaking or click mic → Send', true);
+      };
+    }
+
+    function setVoiceStatus(msg, active) {
+      const el = document.getElementById('voice-status');
+      el.textContent = msg || '';
+      el.classList.toggle('active', !!active);
+    }
+
+    function toggleMic() {
+      if (!recognition) {
+        initSpeech();
+        if (!recognition) return;
+      }
+      if (isListening) {
+        isListening = false;
+        clearTimeout(restartTimer);
+        try { recognition.stop(); } catch (e) {}
+        document.getElementById('mic-btn').classList.remove('listening');
+        setVoiceStatus('Stopped. Press Send when ready.');
+      } else {
+        baseTextBeforeSpeech = document.getElementById('chat-input').value.trim();
+        isListening = true;
+        try {
+          recognition.start();
+        } catch (e) {
+          isListening = false;
+          setVoiceStatus('Could not start: ' + e.message + ' — refresh and allow mic.');
+        }
+      }
+    }
+
+    function speakLastReply() {
+      if (!lastAssistantReply) {
+        setVoiceStatus('No reply to speak yet.');
+        return;
+      }
+      speakText(lastAssistantReply);
+    }
+
+    function speakText(text) {
+      if (!window.speechSynthesis) {
+        setVoiceStatus('Text-to-speech not supported in this browser.');
+        return;
+      }
+      window.speechSynthesis.cancel();
+      // Strip markdown-ish noise for cleaner speech
+      const clean = text
+        .replace(/```[\s\S]*?```/g, ' ')
+        .replace(/[#*_`|>\-]+/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .slice(0, 1200); // keep it short for TTS
+      const u = new SpeechSynthesisUtterance(clean);
+      u.lang = 'en-IN';
+      u.rate = 1.0;
+      u.pitch = 1.0;
+      u.onstart = () => setVoiceStatus('Speaking…');
+      u.onend = () => setVoiceStatus('');
+      window.speechSynthesis.speak(u);
+    }
+
+    // Init
+    loadResources();
+    initSpeech();
+  </script>
+</body>
+</html>
